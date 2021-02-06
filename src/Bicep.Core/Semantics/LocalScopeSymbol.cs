@@ -13,17 +13,17 @@ namespace Bicep.Core.Semantics
     /// </summary>
     public class LocalScopeSymbol : Symbol, ILanguageScope
     {
-        public LocalScopeSymbol(string name, SyntaxBase enclosingSyntax, IEnumerable<DeclaredSymbol> declaredSymbols, IEnumerable<LocalScopeSymbol> childScopes)
+        public LocalScopeSymbol(string name, SyntaxBase enclosingSyntax, IEnumerable<LocalSymbol> locals, IEnumerable<LocalScopeSymbol> childScopes)
             : base(name)
         {
             this.EnclosingSyntax = enclosingSyntax;
-            this.DeclaredSymbols = declaredSymbols.ToImmutableArray();
+            this.Locals = locals.ToImmutableArray();
             this.ChildScopes = childScopes.ToImmutableArray();
         }
 
         public SyntaxBase EnclosingSyntax { get; }
 
-        public ImmutableArray<DeclaredSymbol> DeclaredSymbols { get; }
+        public ImmutableArray<LocalSymbol> Locals { get; }
 
         public ImmutableArray<LocalScopeSymbol> ChildScopes { get; }
 
@@ -31,11 +31,13 @@ namespace Bicep.Core.Semantics
 
         public override SymbolKind Kind => SymbolKind.Scope;
 
-        public override IEnumerable<Symbol> Descendants => this.ChildScopes.Concat<Symbol>(this.DeclaredSymbols);
+        public override IEnumerable<Symbol> Descendants => this.ChildScopes.Concat<Symbol>(this.Locals);
 
-        public LocalScopeSymbol AppendChild(LocalScopeSymbol newChild) => new(this.Name, this.EnclosingSyntax, this.DeclaredSymbols, this.ChildScopes.Append(newChild));
+        public LocalScopeSymbol AppendChild(LocalScopeSymbol newChild) => new(this.Name, this.EnclosingSyntax, this.Locals, this.ChildScopes.Append(newChild));
 
-        public IEnumerable<DeclaredSymbol> GetDeclarationsByName(string name) => this.DeclaredSymbols.Where(symbol => symbol.NameSyntax.IsValid && string.Equals(symbol.Name, name, LanguageConstants.IdentifierComparison)).ToList();
+        public IEnumerable<DeclaredSymbol> GetDeclarationsByName(string name) => this.Locals.Where(symbol => symbol.NameSyntax.IsValid && string.Equals(symbol.Name, name, LanguageConstants.IdentifierComparison)).ToList();
+        
+        public IEnumerable<DeclaredSymbol> AllDeclarations => this.Locals;
 
         public override IEnumerable<ErrorDiagnostic> GetDiagnostics()
         {
